@@ -1,31 +1,86 @@
 # CookSense
-This project presents an AI-Based Recipe Recommender System designed to suggest suitable
-recipes based on leftover ingredients available to the user. The primary objective of the system
-is to reduce food waste and assist users in making efficient use of ingredients already present
-in their kitchen. By bridging the gap between available resources and possible meal options,
-the system provides a practical and intelligent solution to a common real-world problem.
-The system accepts a dynamic list of ingredients as input and models the relationship between
-ingredients and recipes in the form of a graph. It employs the Breadth-First Search (BFS)
-algorithm as its core search mechanism to traverse this ingredient–recipe graph, ensuring that
-all possible relevant recipes connected to the input ingredients are efficiently explored. This
-guarantees that no viable recipe option is missed during the search process.
+# CookSense – AI Recipe Recommender 🍳
 
-To further refine the results, a heuristic scoring function is applied to rank the discovered
-recipes. The scoring is based on two key factors: the proportion of matched ingredients and the
-penalty for missing ingredients. This approach ensures that recipes requiring fewer additional
-ingredients are prioritized, while still allowing partially matching recipes to be considered.
-Additionally, rule-based filtering is used to eliminate irrelevant results, thereby improving the
-accuracy and usefulness of recommendations.
+## Overview
 
-The system is implemented as a web-based application using Python and Flask for the backend,
-and HTML, CSS, and JavaScript for the frontend interface. A curated dataset of approximately
-30 recipes, including common Indian dishes and everyday meals, is used for demonstration.
-The application provides clear outputs, including recipe names, match percentages, ingredient
-availability status, and step-by-step cooking instructions, making it both user-friendly and
-explainable.
+CookSense is a web-based AI system that recommends recipes based on leftover ingredients available with the user. The goal is to reduce food waste and help users quickly decide what they can cook using what they already have.
 
-Overall, the proposed system is lightweight, efficient, and easy to deploy, making it suitable
-for academic demonstration as well as practical use. By combining fundamental Artificial
-Intelligence concepts such as graph search, heuristic evaluation, and rule-based filtering, the
-project successfully delivers a functional tool that promotes smarter cooking decisions and
-contributes to the reduction of household food waste.
+---
+
+## Features
+
+* Accepts a dynamic list of user-provided ingredients
+* Uses graph-based search to find relevant recipes
+* Ranks recipes using a heuristic scoring function
+* Displays match percentage and missing ingredients
+* Provides step-by-step cooking instructions
+
+---
+
+## Tech Stack
+
+* **Backend:** Python, Flask
+* **Frontend:** HTML, CSS, JavaScript
+* **Core Logic:** BFS (Breadth-First Search), Heuristic Scoring
+
+---
+
+## How It Works
+
+1. User enters available ingredients
+2. Ingredients are mapped to a graph of recipes
+3. BFS is used to explore all possible recipe matches
+4. Recipes are scored based on:
+
+   * Ingredient match percentage
+   * Penalty for missing ingredients
+5. Top-ranked recipes are displayed to the user
+
+---
+
+## Example
+
+**Input:** rice, egg, onion
+**Output:**
+
+* Egg Fried Rice (Best match)
+* Masala Omelette
+* Veg Pulao
+
+---
+
+## How to Run
+
+1. Clone the repository
+2. Install dependencies
+
+   ```
+   pip install flask
+   ```
+3. Run the app
+
+   ```
+   python app.py
+   ```
+4. Open browser and go to
+
+   ```
+   http://127.0.0.1:5000
+   ```
+
+---
+
+## Future Improvements
+
+* Add machine learning for personalized recommendations
+* Integrate grocery APIs for missing ingredients
+* Add image recognition for ingredient detection
+* Support multiple languages
+
+---
+
+## Contributors
+
+* Arohi Rawat
+* Team members
+
