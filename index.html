@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RecipeAI — Leftover Ingredient Recommender</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream:  #fdf6ec;
+    --warm:   #f5e6c8;
+    --terra:  #c0622a;
+    --spice:  #e07b39;
+    --brown:  #5c3317;
+    --leaf:   #4a7c59;
+    --text:   #2d1b0e;
+    --muted:  #8a6a52;
+    --card:   #fffbf5;
+    --shadow: rgba(92,51,23,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 10% 0%, #f5ddb0 0%, transparent 55%),
+      radial-gradient(ellipse at 90% 100%, #e8c99a 0%, transparent 55%);
+  }
+
+  header { text-align: center; padding: 3.5rem 1rem 2rem; }
+  header .label { font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--terra); font-weight: 500; margin-bottom: 0.6rem; }
+  header h1 { font-family: 'Playfair Display', serif; font-size: clamp(2.2rem, 6vw, 3.8rem); color: var(--brown); line-height: 1.1; }
+  header h1 em { color: var(--terra); font-style: italic; }
+  header p { margin-top: 0.8rem; color: var(--muted); font-size: 1rem; font-weight: 300; max-width: 480px; margin-inline: auto; }
+
+  .main-card { max-width: 680px; margin: 0 auto 3rem; padding: 0 1.2rem; }
+  .input-section { background: var(--card); border-radius: 20px; padding: 2rem; box-shadow: 0 4px 30px var(--shadow), 0 1px 0 rgba(255,255,255,0.9) inset; border: 1px solid rgba(192,98,42,0.1); }
+  .input-label { font-size: 0.8rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--terra); font-weight: 500; margin-bottom: 0.8rem; display: block; }
+
+  .tag-box { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; border: 1.5px solid var(--warm); border-radius: 12px; padding: 0.6rem 0.8rem; min-height: 56px; cursor: text; background: var(--cream); transition: border-color 0.2s; }
+  .tag-box:focus-within { border-color: var(--spice); }
+  .tag { display: flex; align-items: center; gap: 0.35rem; background: var(--terra); color: white; padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.85rem; font-weight: 500; animation: popIn 0.18s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes popIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .tag-remove { cursor: pointer; opacity: 0.7; font-size: 1rem; line-height: 1; transition: opacity 0.15s; }
+  .tag-remove:hover { opacity: 1; }
+  #ing-input { border: none; outline: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; color: var(--text); min-width: 140px; flex: 1; }
+  #ing-input::placeholder { color: var(--muted); }
+  .hint { font-size: 0.78rem; color: var(--muted); margin-top: 0.5rem; font-weight: 300; }
+
+  .suggestions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 1.1rem; }
+  .sug-chip { background: var(--warm); color: var(--brown); border: none; padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: background 0.15s, transform 0.1s; font-weight: 400; }
+  .sug-chip:hover { background: var(--spice); color: white; transform: translateY(-1px); }
+
+  .btn-find { width: 100%; margin-top: 1.5rem; padding: 0.95rem; background: var(--terra); color: white; border: none; border-radius: 12px; font-family: 'Playfair Display', serif; font-size: 1.1rem; cursor: pointer; transition: background 0.2s, transform 0.15s, box-shadow 0.2s; box-shadow: 0 4px 14px rgba(192,98,42,0.35); letter-spacing: 0.02em; }
+  .btn-find:hover:not(:disabled) { background: var(--brown); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(92,51,23,0.35); }
+  .btn-find:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  #results { margin-top: 2rem; }
+  .results-header { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--brown); margin-bottom: 1.2rem; padding-bottom: 0.6rem; border-bottom: 2px solid var(--warm); }
+
+  /* TOP RECIPE BANNER */
+  .top-recipe-banner {
+    background: linear-gradient(135deg, var(--terra), #a0471c);
+    border-radius: 18px;
+    padding: 1.6rem;
+    margin-bottom: 1.2rem;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 6px 24px rgba(192,98,42,0.4);
+    animation: slideUp 0.3s ease both;
+  }
+  .top-recipe-banner::before {
+    content: '';
+    position: absolute; top: -30px; right: -30px;
+    width: 120px; height: 120px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 50%;
+  }
+  .top-badge { font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; background: rgba(255,255,255,0.2); padding: 0.25rem 0.7rem; border-radius: 999px; display: inline-block; margin-bottom: 0.6rem; }
+  .top-recipe-banner .recipe-name { font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-bottom: 0.4rem; }
+  .top-recipe-banner .recipe-meta { opacity: 0.85; font-size: 0.82rem; display: flex; gap: 1rem; margin-bottom: 1rem; }
+  .btn-view-recipe {
+    background: white; color: var(--terra); border: none; padding: 0.6rem 1.2rem;
+    border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+    font-weight: 500; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .btn-view-recipe:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+
+  /* OTHER RECIPE CARDS */
+  .recipe-card { background: var(--card); border-radius: 16px; padding: 1.2rem 1.4rem; margin-bottom: 0.9rem; border: 1px solid rgba(192,98,42,0.1); box-shadow: 0 2px 12px var(--shadow); display: grid; grid-template-columns: auto 1fr auto; gap: 0.8rem 1rem; align-items: center; animation: slideUp 0.3s ease both; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  .recipe-emoji { font-size: 2rem; }
+  .recipe-name { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--brown); margin-bottom: 0.25rem; }
+  .recipe-meta { display: flex; gap: 0.7rem; font-size: 0.76rem; color: var(--muted); margin-bottom: 0.5rem; }
+  .score-row { display: flex; align-items: center; gap: 0.5rem; }
+  .score-bar-bg { flex: 1; height: 5px; background: var(--warm); border-radius: 999px; overflow: hidden; }
+  .score-bar-fill { height: 100%; background: linear-gradient(90deg, var(--spice), var(--terra)); border-radius: 999px; }
+  .score-label { font-size: 0.75rem; font-weight: 500; color: var(--terra); min-width: 32px; text-align: right; }
+  .ing-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.5rem; }
+  .ing-chip { font-size: 0.72rem; padding: 0.18rem 0.5rem; border-radius: 999px; font-weight: 500; }
+  .ing-chip.have { background: #dff0e3; color: #2d6a3f; }
+  .ing-chip.need { background: #fce8d8; color: #9c4412; }
+  .btn-view-small { background: var(--warm); color: var(--brown); border: none; padding: 0.45rem 0.8rem; border-radius: 8px; font-size: 0.78rem; font-family: 'DM Sans', sans-serif; cursor: pointer; white-space: nowrap; transition: background 0.15s; font-weight: 500; }
+  .btn-view-small:hover { background: var(--spice); color: white; }
+
+  .empty { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+  .empty-icon { font-size: 3rem; margin-bottom: 0.8rem; }
+  .empty h3 { font-family: 'Playfair Display', serif; color: var(--brown); margin-bottom: 0.4rem; }
+  .spinner { display: flex; justify-content: center; padding: 2rem; }
+  .spinner::after { content: ''; width: 36px; height: 36px; border: 3px solid var(--warm); border-top-color: var(--terra); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(44, 20, 8, 0.55);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card);
+    border-radius: 24px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 88vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(44,20,8,0.35);
+    animation: modalIn 0.25s cubic-bezier(0.34,1.3,0.64,1);
+  }
+  @keyframes modalIn { from { transform: scale(0.88); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-header {
+    background: linear-gradient(135deg, var(--terra), #a0471c);
+    padding: 1.6rem 1.8rem 1.4rem;
+    border-radius: 24px 24px 0 0;
+    color: white;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute; top: 1rem; right: 1.2rem;
+    background: rgba(255,255,255,0.2); border: none; color: white;
+    width: 30px; height: 30px; border-radius: 50%; font-size: 1.1rem;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  .modal-close:hover { background: rgba(255,255,255,0.35); }
+  .modal-emoji { font-size: 2.8rem; margin-bottom: 0.4rem; }
+  .modal-title { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin-bottom: 0.3rem; }
+  .modal-meta { display: flex; gap: 1rem; font-size: 0.82rem; opacity: 0.85; }
+
+  .modal-body { padding: 1.6rem 1.8rem; }
+
+  .modal-section-title {
+    font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--terra); font-weight: 500; margin-bottom: 0.8rem; margin-top: 1.2rem;
+  }
+  .modal-section-title:first-child { margin-top: 0; }
+
+  .all-ingredients { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.5rem; }
+  .modal-ing { font-size: 0.82rem; padding: 0.3rem 0.7rem; border-radius: 999px; font-weight: 500; }
+  .modal-ing.have { background: #dff0e3; color: #2d6a3f; }
+  .modal-ing.need { background: #fce8d8; color: #9c4412; }
+
+  .steps-list { list-style: none; counter-reset: steps; }
+  .steps-list li {
+    counter-increment: steps;
+    display: flex; gap: 0.9rem; align-items: flex-start;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--warm);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+  .steps-list li:last-child { border-bottom: none; }
+  .step-num {
+    min-width: 26px; height: 26px;
+    background: var(--terra); color: white;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 500; flex-shrink: 0; margin-top: 0.1rem;
+  }
+
+  footer { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.78rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="label">AI-Based System · BFS Algorithm</div>
+  <h1>What can I cook with<br><em>what I have?</em></h1>
+  <p>Enter your leftover ingredients and let the AI find the best recipes for you.</p>
+</header>
+
+<div class="main-card">
+  <div class="input-section">
+    <span class="input-label">🧺 Your Ingredients</span>
+    <div class="tag-box" id="tag-box" onclick="document.getElementById('ing-input').focus()">
+      <input id="ing-input" type="text" placeholder="Type an ingredient and press Enter…" autocomplete="off">
+    </div>
+    <p class="hint">Press Enter or comma to add each ingredient.</p>
+    <div class="suggestions">
+      <span style="font-size:0.78rem;color:var(--muted);margin-right:0.2rem;align-self:center;">Try:</span>
+      <button class="sug-chip" onclick="addChip(this.textContent)">rice</button>
+      <button class="sug-chip" onclick="addChip(this.textContent)">egg</button>
+      <button class="sug-chip" onclick="addChip(this.textContent)">onion</button>
+      <button class="sug-chip" onclick="addChip(this.textContent)">potato</button>
+      <button class="sug-chip" onclick="addChip(this.textContent)">tomato</button>
+      <button class="sug-chip" onclick="addChip(this.textContent)">bread</button>
+      <button class="sug-chip" onclick="addChip(this.textContent)">banana</button>
+      <button class="sug-chip" onclick="addChip(this.textContent)">garlic</button>
+    </div>
+    <button class="btn-find" id="find-btn" onclick="findRecipes()">🔍 Find Recipes</button>
+  </div>
+
+  <div id="results"></div>
+</div>
+
+<footer>Built with BFS Search Algorithm &amp; Heuristic Scoring · AI Project Demo</footer>
+
+<!-- RECIPE MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOnBg(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div class="modal-emoji" id="modal-emoji"></div>
+      <div class="modal-title" id="modal-title"></div>
+      <div class="modal-meta" id="modal-meta"></div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section-title">🛒 Ingredients</div>
+      <div class="all-ingredients" id="modal-ingredients"></div>
+      <div class="modal-section-title">👨‍🍳 Step-by-Step Instructions</div>
+      <ol class="steps-list" id="modal-steps"></ol>
+    </div>
+  </div>
+</div>
+
+<script>
+  const tags = new Set();
+  let recipesData = [];
+
+  function addChip(value) {
+    const v = value.trim().toLowerCase();
+    if (!v || tags.has(v)) return;
+    tags.add(v);
+    const chip = document.createElement('div');
+    chip.className = 'tag';
+    chip.dataset.val = v;
+    chip.innerHTML = `${v} <span class="tag-remove" onclick="removeTag('${v}', this.parentElement)">×</span>`;
+    document.getElementById('tag-box').insertBefore(chip, document.getElementById('ing-input'));
+  }
+
+  function removeTag(v, el) { tags.delete(v); el.remove(); }
+
+  document.getElementById('ing-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addChip(e.target.value);
+      e.target.value = '';
+    }
+    if (e.key === 'Backspace' && !e.target.value && tags.size) {
+      const last = [...tags].pop();
+      tags.delete(last);
+      document.querySelectorAll('.tag')[document.querySelectorAll('.tag').length - 1]?.remove();
+    }
+  });
+
+  async function findRecipes() {
+    if (!tags.size) { alert('Please add at least one ingredient!'); return; }
+    const btn = document.getElementById('find-btn');
+    btn.disabled = true; btn.textContent = 'Searching…';
+    document.getElementById('results').innerHTML = '<div class="spinner"></div>';
+    try {
+      const res = await fetch('/recommend', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ ingredients: [...tags] })
+      });
+      const data = await res.json();
+      recipesData = data.recipes;
+      renderResults(data.recipes);
+    } catch {
+      document.getElementById('results').innerHTML = '<p style="color:red;text-align:center">Something went wrong. Please try again.</p>';
+    }
+    btn.disabled = false; btn.textContent = '🔍 Find Recipes';
+  }
+
+  function renderResults(recipes) {
+    const el = document.getElementById('results');
+    if (!recipes.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">🥲</div><h3>No matches found</h3><p>Try adding more common ingredients like rice, egg, or onion.</p></div>`;
+      return;
+    }
+
+    let html = `<div class="results-header">✨ ${recipes.length} Recipes Found</div>`;
+
+    // TOP RESULT — special banner
+    const top = recipes[0];
+    const topHave = top.matched.map(x => `<span class="ing-chip have">✓ ${x}</span>`).join('');
+    const topNeed = top.missing.map(x => `<span class="ing-chip need">+ ${x}</span>`).join('');
+    html += `
+    <div class="top-recipe-banner">
+      <div class="top-badge">⭐ Best Match</div>
+      <div class="recipe-name">${top.emoji} ${top.name}</div>
+      <div class="recipe-meta"><span>⏱ ${top.time}</span><span>📊 ${top.difficulty}</span><span>👤 Serves ${top.serves}</span><span>🎯 ${top.score}% score</span></div>
+      <div class="ing-chips" style="margin-bottom:1rem">${topHave}${topNeed}</div>
+      <button class="btn-view-recipe" onclick="openModal(0)">📖 View Full Recipe & Steps</button>
+    </div>`;
+
+    // REST
+    recipes.slice(1).forEach((r, i) => {
+      const idx = i + 1;
+      const delay = idx * 0.07;
+      const haveHtml = r.matched.map(x => `<span class="ing-chip have">✓ ${x}</span>`).join('');
+      const needHtml = r.missing.map(x => `<span class="ing-chip need">+ ${x}</span>`).join('');
+      html += `
+      <div class="recipe-card" style="animation-delay:${delay}s">
+        <div class="recipe-emoji">${r.emoji}</div>
+        <div>
+          <div class="recipe-name">${r.name}</div>
+          <div class="recipe-meta"><span>⏱ ${r.time}</span><span>📊 ${r.difficulty}</span><span>🎯 ${r.score}%</span></div>
+          <div class="score-row">
+            <div class="score-bar-bg"><div class="score-bar-fill" style="width:${Math.max(r.score,5)}%"></div></div>
+            <div class="score-label">${r.score}%</div>
+          </div>
+          <div class="ing-chips">${haveHtml}${needHtml}</div>
+        </div>
+        <button class="btn-view-small" onclick="openModal(${idx})">📖 Recipe</button>
+      </div>`;
+    });
+
+    el.innerHTML = html;
+  }
+
+  function openModal(idx) {
+    const r = recipesData[idx];
+    document.getElementById('modal-emoji').textContent = r.emoji;
+    document.getElementById('modal-title').textContent = r.name;
+    document.getElementById('modal-meta').innerHTML =
+      `<span>⏱ ${r.time}</span><span>📊 ${r.difficulty}</span><span>👤 Serves ${r.serves}</span>`;
+
+    // Ingredients with have/need colouring
+    const ingHtml = r.all_ingredients.map(ing =>
+      `<span class="modal-ing ${r.matched.includes(ing) ? 'have' : 'need'}">${r.matched.includes(ing) ? '✓' : '+'} ${ing}</span>`
+    ).join('');
+    document.getElementById('modal-ingredients').innerHTML = ingHtml;
+
+    // Steps
+    const stepsHtml = r.steps.map((s, i) =>
+      `<li><div class="step-num">${i+1}</div><span>${s}</span></li>`
+    ).join('');
+    document.getElementById('modal-steps').innerHTML = stepsHtml;
+
+    document.getElementById('modal-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function closeModalOnBg(e) {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>
